@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>客戶銷售後台管理系統</title>
+    <meta name="description" content="產品、客戶、銷售資料 CRUD 與銷售報表後台。" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./vendor/xlsx.full.min.js"></script>
+    <script defer src="./vendor/chart.umd.min.js"></script>
+    <script defer src="./data.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <main class="login-screen" id="loginScreen">
+      <section class="login-card">
+        <div class="login-brand">
+          <span>銀</span>
+          <div>
+            <p>Sales Admin</p>
+            <h1>客戶銷售後台</h1>
+          </div>
+        </div>
+        <p class="login-copy">請以管理者帳號登入後使用產品、客戶、銷售與報表功能。</p>
+        <form id="loginForm" class="login-form">
+          <label>
+            帳號
+            <input id="loginUser" autocomplete="username" required />
+          </label>
+          <label>
+            密碼
+            <input id="loginPass" type="password" autocomplete="current-password" required />
+          </label>
+          <p class="form-message" id="loginMessage" role="status"></p>
+          <button class="btn primary full" type="submit">登入系統</button>
+        </form>
+      </section>
+    </main>
+
+    <section class="app hidden" id="appShell">
+      <aside class="sidebar">
+        <a class="app-brand" href="#dashboard">
+          <span>銀</span>
+          <strong>客戶銷售後台</strong>
+        </a>
+        <nav>
+          <a href="#dashboard" class="nav-link active" data-view="dashboard">總覽報表</a>
+          <a href="#products" class="nav-link" data-view="products">產品資料</a>
+          <a href="#customers" class="nav-link" data-view="customers">客戶資料</a>
+          <a href="#sales" class="nav-link" data-view="sales">銷售資料</a>
+          <a href="#import" class="nav-link" data-view="import">匯入資料</a>
+        </nav>
+        <button class="btn subtle full" id="logoutBtn" type="button">登出</button>
+      </aside>
+
+      <div class="content">
+        <header class="topbar">
+          <div>
+            <p>管理系統</p>
+            <h2 id="pageTitle">總覽報表</h2>
+          </div>
+          <button class="mobile-menu" id="mobileMenu" type="button" aria-label="開啟選單">選單</button>
+        </header>
+
+        <section class="view" id="dashboardView">
+          <div class="kpi-grid">
+            <article>
+              <span id="kpiProducts">0</span>
+              <p>產品筆數</p>
+            </article>
+            <article>
+              <span id="kpiCustomers">0</span>
+              <p>客戶筆數</p>
+            </article>
+            <article>
+              <span id="kpiSales">0</span>
+              <p>銷售筆數</p>
+            </article>
+            <article>
+              <span id="kpiRevenue">0</span>
+              <p>銷售金額</p>
+            </article>
+          </div>
+
+          <div class="report-grid">
+            <article class="report-panel wide">
+              <div class="panel-head">
+                <div>
+                  <p>Sales Trend</p>
+                  <h3>月銷售趨勢</h3>
+                </div>
+              </div>
+              <canvas id="trendChart" height="130"></canvas>
+            </article>
+            <article class="report-panel">
+              <div class="panel-head">
+                <div>
+                  <p>Seasonality</p>
+                  <h3>淡旺季分析</h3>
+                </div>
+              </div>
+              <canvas id="seasonChart" height="190"></canvas>
+            </article>
+            <article class="report-panel">
+              <div class="panel-head">
+                <div>
+                  <p>Products</p>
+                  <h3>熱門產品排行</h3>
+                </div>
+              </div>
+              <canvas id="productChart" height="190"></canvas>
+            </article>
+          </div>
+        </section>
+
+        <section class="view hidden data-view" id="productsView">
+          <div class="filter-panel" id="productsFilters"></div>
+          <div class="table-panel"><div class="table-scroll"><table id="productsTable"></table></div></div>
+        </section>
+
+        <section class="view hidden data-view" id="customersView">
+          <div class="filter-panel" id="customersFilters"></div>
+          <div class="table-panel"><div class="table-scroll"><table id="customersTable"></table></div></div>
+        </section>
+
+        <section class="view hidden data-view" id="salesView">
+          <div class="filter-panel" id="salesFilters"></div>
+          <div class="table-panel"><div class="table-scroll"><table id="salesTable"></table></div></div>
+        </section>
+
+        <section class="view hidden" id="importView">
+          <div class="import-grid">
+            <article class="import-panel">
+              <p>Loaded</p>
+              <h3>已載入桌面 Cus.xls</h3>
+              <div class="loaded-summary">
+                <span id="loadedProducts">0 產品</span>
+                <span id="loadedCustomers">0 客戶</span>
+                <span id="loadedSales">0 銷售</span>
+              </div>
+              <button class="btn subtle full" id="resetDataBtn" type="button">還原為 Cus.xls 初始資料</button>
+              <small>目前資料已拆成產品、客戶、銷售三個 table，修改後會儲存在此瀏覽器。</small>
+            </article>
+
+            <article class="import-panel">
+              <p>Upload</p>
+              <h3>重新上傳 Excel 檔</h3>
+              <label class="file-zone">
+                <input id="fileInput" type="file" accept=".xls,.xlsx,.csv" />
+                <span>選擇 Cus.xls / .xlsx / .csv</span>
+              </label>
+              <small>若重新匯入，系統會依工作表名稱「商品、客戶、銷貨縮表」再次拆分資料。</small>
+            </article>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <dialog id="recordDialog">
+      <form method="dialog" class="record-form" id="recordForm">
+        <div class="modal-head">
+          <div>
+            <p>Record</p>
+            <h3 id="dialogTitle">新增資料</h3>
+          </div>
+          <button class="icon-btn" value="cancel" type="submit" aria-label="關閉">×</button>
+        </div>
+        <div class="dynamic-fields" id="dynamicFields"></div>
+        <div class="modal-actions">
+          <button class="btn subtle" value="cancel" type="submit">取消</button>
+          <button class="btn primary" id="saveRecordBtn" value="default" type="button">儲存</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>
